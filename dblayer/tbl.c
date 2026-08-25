@@ -25,13 +25,16 @@ int  getNthSlotOffset(int slot, char* pageBuf);
 int
 Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
 {
-    UNIMPLEMENTED;
+    // UNIMPLEMENTED;
     // Initialize PF, create PF file,
     // allocate Table structure  and initialize and return via ptable
     // The Table structure only stores the schema. The current functionality
     // does not really need the schema, because we are only concentrating
     // on record storage. 
+    PF_Init();
+
 }
+
 
 void
 Table_Close(Table *tbl) {
@@ -46,6 +49,26 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     // Get the next free slot on page, and copy record in the free
     // space
     // Update slot and free space index information on top of page.
+    int pageNum;
+    char *pageBuf;
+    int err;
+
+    err = PF_AllocPage(tbl-> fileDesc, &pageNum, &pageBuf);
+    check(err);
+
+    int slot = getNumSlots((byte *) pageBuf);
+    int offset = getNthSlotOffset(slot, pageBuf);
+
+    memcpy(pageBuf + offset, record, len);
+    setNumSlots((byte *) pageBuf, slot +1);
+
+    *rid = (pageNum << 16) | slot;
+
+    err = PF_UnfixPage(tbl->fileDesc, pageNum, TRUE);
+    checkerr(err);
+
+    return 0;
+
 }
 
 #define checkerr(err) {if (err < 0) {PF_PrintError(); exit(EXIT_FAILURE);}}
@@ -59,22 +82,67 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     int slot = rid & 0xFFFF;
     int pageNum = rid >> 16;
 
-    UNIMPLEMENTED;
+    // UNIMPLEMENTED;
     // PF_GetThisPage(pageNum)
     // In the page get the slot offset of the record, and
     // memcpy bytes into the record supplied.
     // Unfix the page
+
+    char *pageBuf;
+    int err;
+
+    err = PF_GetThisPage(tbl->fileDesc, pageNum, &pageBuf);
+    checkerr(err);
+
+    int offset = getNthSlotOffset(slot, pageBuf);
+    int len = getLen(slot,(byte *) pageBuf);
+
+    if (len > maxlen){
+        len = maxlen;
+    }
+     
+    memcpy(record, pageBuf + offset, len);
+
+    err = PF_UnfixPage(tbl->fileDesc, pageNum, FALSE);
+    checkerr(err);
+
     return len; // return size of record
 }
 
 void
 Table_Scan(Table *tbl, void *callbackObj, ReadFunc callbackfn) {
 
-    UNIMPLEMENTED;
+    // UNIMPLEMENTED;
 
     // For each page obtained using PF_GetFirstPage and PF_GetNextPage
     //    for each record in that page,
     //          callbackfn(callbackObj, rid, record, recordLen)
+
+    int err;
+    int pagenum;
+    char *pageBuf;
+
+    err = PF_GetFirstPage(tbl->fileDesc, &pagenum, &pageBuf);
+
+    while (err == PFE_OK){
+        int nslots = getNumSlots((byte*)pageBuf);
+
+        for (int slot = 0; slot < nslots; slot++){
+
+            int offset = getNthSlotOffset(slot, pageBuf);
+            int len = getLen(slot, (byte * )pageBuf);
+            RecId rid = (pagenum << 16) | slot;
+
+            callbackfn(callbackObj, rid, (byte *)(pageBuf + offset), len);
+
+        }
+        PF_UnfixPage(tbl->fileDesc, pagenum, FALSE);
+        err = PF_GetNextPage(tbl->fileDesc, &pagenum, &pageBuf);
+    }
+    if(err != PFE_EOF){
+        checkerr(err);
+    }
+
 }
 
 

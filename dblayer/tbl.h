@@ -20,8 +20,10 @@ typedef struct {
 
 typedef struct {
     Schema *schema;
+    int fileDesc;
 
-    UNIMPLEMENTED; 
+
+    // UNIMPLEMENTED; 
     
 } Table ;
 
