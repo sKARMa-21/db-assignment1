@@ -31,6 +31,40 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     // The Table structure only stores the schema. The current functionality
     // does not really need the schema, because we are only concentrating
     // on record storage. 
+
+
+    PF_INIT();
+     
+   // if overwirte is true them destroy the file if it existst
+    if (overwrite) {
+        PF_DestroyFile(dbname);
+    }
+
+    int fd = PF_OpenFile(dbname);
+    
+    if(fd < 0){
+        // file does not exist ,create it
+        int err = PF_CreateFile(dbname);
+        if(err < 0){
+            PF_PrintError();
+            return err;
+        }
+        fd = PF_OpenFile(dbname);
+        checkerr(fd);
+    }
+    
+    if(!tbl){
+        PF_PrintError();
+        return -1;
+    }
+
+    Table *tbl = malloc(sizeof(Table));
+    tlb->schema = schema;
+    tlb->fd = fd;
+
+
+    ptable = tbl;
+    retrun 0;
      
 
 }
