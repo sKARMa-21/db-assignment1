@@ -31,15 +31,20 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     // The Table structure only stores the schema. The current functionality
     // does not really need the schema, because we are only concentrating
     // on record storage. 
-    PF_Init();
+     
 
 }
 
 
 void
 Table_Close(Table *tbl) {
-    UNIMPLEMENTED;
+    // UNIMPLEMENTED;
     // Unfix any dirty pages, close file.
+
+    int fd = tbl->fd;
+
+    PF_closeFile(fd);
+
 }
 
 
