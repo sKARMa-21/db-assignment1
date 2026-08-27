@@ -118,8 +118,8 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
  */
 int
 Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
-    int slot = rid & 0xFFFF;
-    int pageNum = rid >> 16;
+    int slot = rid & 0xFF;
+    int pageNum = rid >> 8;
 
     // UNIMPLEMENTED;
     // PF_GetThisPage(pageNum)
@@ -170,7 +170,7 @@ Table_Scan(Table *tbl, void *callbackObj, ReadFunc callbackfn) {
 
             int offset = getNthSlotOffset(slot, pageBuf);
             int len = getLen(slot, (byte * )pageBuf);
-            RecId rid = (pagenum << 16) | slot;
+            RecId rid = (pagenum << 8) | slot;
 
             callbackfn(callbackObj, rid, (byte *)(pageBuf + offset), len);
 
