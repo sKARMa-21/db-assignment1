@@ -25,13 +25,41 @@ in codec.c to convert strings into compact binary representations
  */
 int
 encode(Schema *sch, char **fields, byte *record, int spaceLeft) {
-    UNIMPLEMENTED;
+    // UNIMPLEMENTED;
     // for each field
     //    switch corresponding schema type is
     //        VARCHAR : EncodeCString
     //        INT : EncodeInt
     //        LONG: EncodeLong
     // return the total number of bytes encoded into record
+    
+
+    int offset = 0;
+
+    for(int i=0;i<sch->numColumns;i++){
+        int ecoded = 0;
+
+        switch (sch->columns[i]->type)
+        {
+        case VARCHAR:
+            encoded = EncodeCString(record, fields[i], spaceLeft - offset);
+            break;
+        case INT:
+            encoded = EncodeINT(atoi(fields[i]),record+offset);
+            break;
+        case LONG: 
+             encoded = EncodeLong(atoi(fields[i]),record+offset);    
+             break;
+        default:
+            break;
+        }
+        offset += encoded;
+    }
+
+    return offset;
+
+
+
 }
 
 Schema *
@@ -53,8 +81,12 @@ loadCSV() {
     // Open main db file
     Schema *sch = parseSchema(line);
     Table *tbl;
+    
+    // UNIMPLEMENTED;
 
-    UNIMPLEMENTED;
+     PF_Init();
+     int filedec = PF_openFile(DB_NAME);
+
 
     char *tokens[MAX_TOKENS];
     char record[MAX_PAGE_SIZE];
@@ -65,15 +97,21 @@ loadCSV() {
 	int len = encode(sch, tokens, record, sizeof(record));
 	RecId rid;
 
-	UNIMPLEMENTED;
+	// UNIMPLEMENTED;
+    table_insert(tbl,record,len,&rid);
 
 	printf("%d %s\n", rid, tokens[0]);
 
 	// Indexing on the population column 
 	int population = atoi(tokens[2]);
 
-	UNIMPLEMENTED;
+	// UNIMPLEMENTED;
 	// Use the population field as the field to index on
+
+    int indexFD = AM_CreateIndex('population', 0, 'i', sizeof(int));
+
+    err = AM_InsertEntry(indexFD, 'i', sizeof(int), (char *)&population, rid);
+
 	    
 	checkerr(err);
     }
