@@ -15,6 +15,39 @@ int  getNumSlots(byte *pageBuf);
 void setNumSlots(byte *pageBuf, int nslots);
 int  getNthSlotOffset(int slot, char* pageBuf);
 
+int getNumSlots(byte *pageBuf)
+{
+    unsigned short nslots;
+    memcpy(&nslots, pageBuf + SLOT_COUNT_OFFSET, sizeof(unsigned short));
+    return nslots;
+}
+
+void setNumSlots(byte *pageBuf, int nslots)
+{
+    unsigned short value = (unsigned short)nslots;
+    memcpy(pageBuf + SLOT_COUNT_OFFSET, &value, sizeof(unsigned short));
+}
+
+int getNthSlotOffset(int slot, char *pageBuf)
+{
+    unsigned short offset;
+    memcpy(&offset,
+           pageBuf + 4 + slot * sizeof(unsigned short),
+           sizeof(unsigned short));
+
+    return offset;
+}
+
+int getLen(int slot, byte *pageBuf)
+{
+    int offset = getNthSlotOffset(slot, (char *)pageBuf);
+
+    unsigned short len;
+    memcpy(&len, pageBuf + offset, sizeof(unsigned short));
+
+    return len;
+}
+
 
 /**
    Opens a paged file, creating one if it doesn't exist, and optionally
@@ -32,8 +65,7 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     // does not really need the schema, because we are only concentrating
     // on record storage. 
 
-
-    PF_INIT();
+    PF_Init();
      
    // if overwirte is true them destroy the file if it existst
     if (overwrite) {
@@ -52,19 +84,21 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
         fd = PF_OpenFile(dbname);
         checkerr(fd);
     }
+    // Table *tbl = malloc(sizeof(Table));
     
+
+    Table *tbl = malloc(sizeof(Table));
+    tbl->schema = schema;
+    tbl->fileDesc = fd;
+
     if(!tbl){
         PF_PrintError();
         return -1;
     }
 
-    Table *tbl = malloc(sizeof(Table));
-    tlb->schema = schema;
-    tlb->fd = fd;
 
-
-    ptable = tbl;
-    retrun 0;
+    * ptable = tbl;
+    return 0;
      
 
 }
@@ -75,9 +109,9 @@ Table_Close(Table *tbl) {
     // UNIMPLEMENTED;
     // Unfix any dirty pages, close file.
 
-    int fd = tbl->fd;
+    int fd = tbl->fileDesc;
 
-    PF_closeFile(fd);
+    PF_CloseFile(fd);
 
 }
 
@@ -93,7 +127,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     int err;
 
     err = PF_AllocPage(tbl-> fileDesc, &pageNum, &pageBuf);
-    check(err);
+    checkerr(err);
 
     int slot = getNumSlots((byte *) pageBuf);
     int offset = getNthSlotOffset(slot, pageBuf);
@@ -101,7 +135,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     memcpy(pageBuf + offset, record, len);
     setNumSlots((byte *) pageBuf, slot +1);
 
-    *rid = (pageNum << 16) | slot;
+    *rid = (pageNum << 8) | slot;
 
     err = PF_UnfixPage(tbl->fileDesc, pageNum, TRUE);
     checkerr(err);
