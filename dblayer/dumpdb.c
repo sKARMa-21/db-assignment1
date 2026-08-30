@@ -14,37 +14,6 @@ printRow(void *callbackObj, RecId rid, byte *row, int len) {
     byte *cursor = row;
 
     // UNIMPLEMENTED;
-
-    for(int i=0;i<schema->numColumns;i++){
-
-        if(i > 0){
-            printf(",");
-        }
-
-        switch(schema->columns[i]->type){
-            case VARCHAR: {
-
-                char value[PF_PAGE_SIZE];
-                int encodedlen = DecodeCString(cursor,value,sizeof(value));
-                printf("%s",value);
-                cursor += encodedlen;
-                break;
-            }
-            case INT: 
-            printf("%d",DecodeInt(cursor));
-            cursor += sizeof(int);
-            break;
-            
-            case LONG:
-            printf("%lld", DecodeLong(cursor));
-            cursor += sizeof(long long);
-            break;
-
-            default:
-            break;
-        }
-    }
-    putchar('\n');
 }
 
 #define DB_NAME "data.db"
@@ -72,11 +41,11 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
    }
 
    byte row[PF_PAGE_SIZE];
-   int rid;
+   RecId rid;
 
-   while(rid = AM_FindNextEntry(scanDesc)  >= 0){
+   while((rid = AM_FindNextEntry(scanDesc))  >= 0){
     
-    int len = Table_get(tbl,rid,row,sizeof(row));
+    int len = Table_Get(tbl,rid,row,sizeof(row));
       if(len < 0){
         checkerr(len);
       }
@@ -87,7 +56,7 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
    int err = AM_CloseIndexScan(scanDesc);
    if(err < 0){
     checkerr(err);
-    exit(ExitFailure);
+    // exit(ExitFailure);
    }
 
 
@@ -106,7 +75,7 @@ main(int argc, char **argv) {
     if (argc == 2 && *(argv[1]) == 's') {
 	// UNIMPLEMENTED;
 	// invoke Table_Scan with printRow, which will be invoked for each row in the table.
-    Table_Scan(tbl,schema,printRow,schema);
+    Table_Scan(tbl,schema,printRow);
     
     } else {
 	// index scan by default
