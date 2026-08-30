@@ -132,10 +132,14 @@ checkerr(err2);
 
         err = AM_InsertEntry(indexFD, 'i', sizeof(int), (char *)&population, rid);
 
+        // printf("DEBUG INSERT: population=%d rid=%d err=%d\n", population, rid, err);
+
             
         checkerr(err);
     }
     fclose(fp);
+    err = PF_CloseFile(indexFD);
+    checkerr(err);
     Table_Close(tbl);
     // err = AM_CloseIndex(indexFD);
     // checkerr(err);

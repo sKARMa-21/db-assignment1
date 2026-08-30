@@ -68,6 +68,8 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
    int scanDesc = AM_OpenIndexScan(indexFD, 'i', sizeof(int), op,(char *) &value);
 //    printf("scanDesc = %d, op = %d, value = %d\n", scanDesc, op, value);
 
+//    printf("scanDesc = %d\n", scanDesc);
+
    if(scanDesc < 0){
     checkerr(scanDesc);
    }
@@ -76,13 +78,16 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
    RecId rid;
 
    while((rid = AM_FindNextEntry(scanDesc))  >= 0){
+
+    // printf("Found RID:-------------------------------------%d\n", rid);
     
     int len = Table_Get(tbl,rid,row,sizeof(row));
-      if(len < 0){
+    // printf("Table_Get len = %d\n", len);
+    if(len < 0){
         checkerr(len);
-      }
+    }
 
-      printRow(schema,rid,row,len);
+    printRow(schema,rid,row,len);
    }
 
    int err = AM_CloseIndexScan(scanDesc);
@@ -111,6 +116,7 @@ main(int argc, char **argv) {
     
     } else {
 	// index scan by default
+    printf("Entering index scan branch\n");
 	int indexFD = PF_OpenFile(INDEX_NAME);
 	checkerr(indexFD);
 
