@@ -37,18 +37,18 @@ encode(Schema *sch, char **fields, byte *record, int spaceLeft) {
     int offset = 0;
 
     for(int i=0;i<sch->numColumns;i++){
-        int ecoded = 0;
+        int encoded = 0;
 
         switch (sch->columns[i]->type)
         {
         case VARCHAR:
-            encoded = EncodeCString(record, fields[i], spaceLeft - offset);
+            encoded = EncodeCString(fields[i],record+offset, spaceLeft - offset);
             break;
         case INT:
-            encoded = EncodeINT(atoi(fields[i]),record+offset);
+            encoded = EncodeInt(atoi(fields[i]),record+offset);
             break;
         case LONG: 
-             encoded = EncodeLong(atoi(fields[i]),record+offset);    
+             encoded = EncodeLong(atol(fields[i]),record+offset);    
              break;
         default:
             break;
@@ -66,16 +66,17 @@ Schema *
 loadCSV() {
     // Open csv file, parse schema
     FILE *fp = fopen(CSV_NAME, "r");
+
     if (!fp) {
-	perror("data.csv could not be opened");
+	    perror("data.csv could not be opened");
         exit(EXIT_FAILURE);
     }
 
     char buf[MAX_LINE_LEN];
     char *line = fgets(buf, MAX_LINE_LEN, fp);
     if (line == NULL) {
-	fprintf(stderr, "Unable to read data.csv\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Unable to read data.csv\n");
+        exit(EXIT_FAILURE);
     }
 
     // Open main db file
@@ -83,42 +84,62 @@ loadCSV() {
     Table *tbl;
     
     // UNIMPLEMENTED;
+    int err = Table_Open(DB_NAME, sch, true, &tbl);
+    checkerr(err);
 
-     PF_Init();
-     int filedec = PF_openFile(DB_NAME);
+    // int filedec = PF_OpenFile(DB_NAME);
+
+    // int err2 = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
+    // checkerr(err2);
+    int err2 = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
+printf("AM_CreateIndex returned: %d\n", err2);
+checkerr(err2);
+    int indexFD = PF_OpenFile(INDEX_NAME);
+    checkerr(indexFD);
+    // if (indexFD < 0) {
+    //     AM_PrintError("AM_Create Index Failed");
+    //     Table_Close(tbl);
+    //     fclose(fp);
+    //     exit(EXIT_FAILURE);
+    // }
 
 
     char *tokens[MAX_TOKENS];
     char record[MAX_PAGE_SIZE];
 
     while ((line = fgets(buf, MAX_LINE_LEN, fp)) != NULL) {
-	int n = split(line, ",", tokens);
-	assert (n == sch->numColumns);
-	int len = encode(sch, tokens, record, sizeof(record));
-	RecId rid;
 
-	// UNIMPLEMENTED;
-    table_insert(tbl,record,len,&rid);
+        int n = split(line, ",", tokens);
+        assert (n == sch->numColumns);
 
-	printf("%d %s\n", rid, tokens[0]);
+        int len = encode(sch, tokens, record, sizeof(record));
+        RecId rid;
 
-	// Indexing on the population column 
-	int population = atoi(tokens[2]);
+        // UNIMPLEMENTED;
 
-	// UNIMPLEMENTED;
-	// Use the population field as the field to index on
+        err = Table_Insert(tbl, (byte *)record, len, &rid);
+        checkerr(err);
 
-    int indexFD = AM_CreateIndex('population', 0, 'i', sizeof(int));
+        printf("%d %s\n", rid, tokens[0]);
 
-    err = AM_InsertEntry(indexFD, 'i', sizeof(int), (char *)&population, rid);
+        // Indexing 
+        int population = atoi(tokens[2]);
 
-	    
-	checkerr(err);
+        // UNIMPLEMENTED;
+        // Use the population field as the field to index on
+
+        // int indexFD = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
+
+        err = AM_InsertEntry(indexFD, 'i', sizeof(int), (char *)&population, rid);
+
+            
+        checkerr(err);
     }
     fclose(fp);
     Table_Close(tbl);
-    err = PF_CloseFile(indexFD);
-    checkerr(err);
+    // err = AM_CloseIndex(indexFD);
+    // checkerr(err);
+    
     return sch;
 }
 
