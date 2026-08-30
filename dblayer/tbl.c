@@ -41,8 +41,13 @@ int getNthSlotOffset(int slot, char *pageBuf)
 int getLen(int slot, byte *pageBuf)
 {
     int offset = getNthSlotOffset(slot, (char *)pageBuf);
-    int prevBoundary = (slot == 0) ? PF_PAGE_SIZE
-                                    : getNthSlotOffset(slot - 1, (char *)pageBuf);
+    int prevBoundary ;
+    if(slot == 0){
+        prevBoundary = PF_PAGE_SIZE;
+
+    }else{
+        prevBoundary = getNthSlotOffset(slot -1, (char *)pageBuf);
+    }
     return prevBoundary - offset;
 }
 
@@ -109,10 +114,11 @@ void
 Table_Close(Table *tbl) {
     // UNIMPLEMENTED;
     // Unfix any dirty pages, close file.
-
-    int fd = tbl->fileDesc;
-
-    int err = PF_CloseFile(fd);
+    if (tbl->currPB != NULL) {
+        int uerr = PF_UnfixPage(tbl->fileDesc, tbl->currPN, TRUE);
+        checkerr(uerr);
+    }
+    int err = PF_CloseFile(tbl->fileDesc);
     checkerr(err);
     free(tbl);
 }
@@ -142,7 +148,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
         if (numSlots == 0){
             boundary = PF_PAGE_SIZE;
         } else{
-            getNthSlotOffset(numSlots-1, tbl->currPB);
+            boundary = getNthSlotOffset(numSlots-1, tbl->currPB);
         }
         int headerEnd = 4 + (numSlots +1) * (int) sizeof(unsigned short);
         
@@ -160,7 +166,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     if (slot == 0){
             boundary = PF_PAGE_SIZE;
         } else{
-            getNthSlotOffset(slot-1, tbl->currPB);
+            boundary= getNthSlotOffset(slot-1, tbl->currPB);
         }
     int offset = boundary -len;
 

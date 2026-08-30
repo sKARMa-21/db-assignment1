@@ -42,13 +42,13 @@ encode(Schema *sch, char **fields, byte *record, int spaceLeft) {
         switch (sch->columns[i]->type)
         {
         case VARCHAR:
-            encoded = EncodeCString(record, fields[i], spaceLeft - offset);
+            encoded = EncodeCString(fields[i],record+offset, spaceLeft - offset);
             break;
         case INT:
             encoded = EncodeInt(atoi(fields[i]),record+offset);
             break;
         case LONG: 
-             encoded = EncodeLong(atoi(fields[i]),record+offset);    
+             encoded = EncodeLong(atol(fields[i]),record+offset);    
              break;
         default:
             break;
@@ -89,13 +89,19 @@ loadCSV() {
 
     // int filedec = PF_OpenFile(DB_NAME);
 
-    int indexFD = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
-    if (indexFD < 0) {
-        AM_PrintError("AM_Create Index Failed");
-        Table_Close(tbl);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
+    // int err2 = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
+    // checkerr(err2);
+    int err2 = AM_CreateIndex(DB_NAME, 0, 'i', sizeof(int));
+printf("AM_CreateIndex returned: %d\n", err2);
+checkerr(err2);
+    int indexFD = PF_OpenFile(INDEX_NAME);
+    checkerr(indexFD);
+    // if (indexFD < 0) {
+    //     AM_PrintError("AM_Create Index Failed");
+    //     Table_Close(tbl);
+    //     fclose(fp);
+    //     exit(EXIT_FAILURE);
+    // }
 
 
     char *tokens[MAX_TOKENS];

@@ -14,6 +14,37 @@ printRow(void *callbackObj, RecId rid, byte *row, int len) {
     byte *cursor = row;
 
     // UNIMPLEMENTED;
+
+    for(int i=0;i<schema->numColumns;i++){
+
+        if(i > 0){
+            printf(",");
+        }
+
+        switch(schema->columns[i]->type){
+            case VARCHAR: {
+
+                char value[PF_PAGE_SIZE];
+                int encodedlen = DecodeCString(cursor,value,sizeof(value));
+                printf("%s",value);
+                cursor += encodedlen +2;
+                break;
+            }
+            case INT: 
+            printf("%d",DecodeInt(cursor));
+            cursor += sizeof(int);
+            break;
+            
+            case LONG:
+            printf("%lld", DecodeLong(cursor));
+            cursor += sizeof(long long);
+            break;
+
+            default:
+            break;
+        }
+    }
+    putchar('\n');
 }
 
 #define DB_NAME "data.db"
@@ -35,6 +66,7 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
 
     
    int scanDesc = AM_OpenIndexScan(indexFD, 'i', sizeof(int), op,(char *) &value);
+//    printf("scanDesc = %d, op = %d, value = %d\n", scanDesc, op, value);
 
    if(scanDesc < 0){
     checkerr(scanDesc);
@@ -56,7 +88,7 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
    int err = AM_CloseIndexScan(scanDesc);
    if(err < 0){
     checkerr(err);
-    // exit(ExitFailure);
+    exit(scanDesc);
    }
 
 
