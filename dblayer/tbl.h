@@ -23,6 +23,8 @@ typedef struct {
     int fileDesc;
 
 
+    int currPN;
+    char *currPB;
     // UNIMPLEMENTED; 
     
 } Table ;
